@@ -1,94 +1,120 @@
-// state
-let currCity = "London";
-let units = "metric";
+"use strict";
 
-// Selectors
-let city = document.querySelector(".weather__city");
-let datetime = document.querySelector(".weather__datetime");
-let weather__forecast = document.querySelector('.weather__forecast');
-let weather__temperature = document.querySelector(".weather__temperature");
-let weather__icon = document.querySelector(".weather__icon");
-let weather__minmax = document.querySelector(".weather__minmax")
-let weather__realfeel = document.querySelector('.weather__realfeel');
-let weather__humidity = document.querySelector('.weather__humidity');
-let weather__wind = document.querySelector('.weather__wind');
-let weather__pressure = document.querySelector('.weather__pressure');
+var input = document.getElementById('input'), // input/output button
+  number = document.querySelectorAll('.numbers div'), // number buttons
+  operator = document.querySelectorAll('.operators div'), // operator buttons
+  result = document.getElementById('result'), // equal button
+  clear = document.getElementById('clear'), // clear button
+  resultDisplayed = false; // flag to keep an eye on what output is displayed
 
-// search
-document.querySelector(".weather__search").addEventListener('submit', e => {
-    let search = document.querySelector(".weather__searchform");
-    // prevent default action
-    e.preventDefault();
-    // change current city
-    currCity = search.value;
-    // get weather forecast 
-    getWeather();
-    // clear form
-    search.value = ""
-})
+// adding click handlers to number buttons
+for (var i = 0; i < number.length; i++) {
+  number[i].addEventListener("click", function(e) {
 
-// units
-document.querySelector(".weather_unit_celsius").addEventListener('click', () => {
-    if(units !== "metric"){
-        // change to metric
-        units = "metric"
-        // get weather forecast 
-        getWeather()
+    // storing current input string and its last character in variables - used later
+    var currentString = input.innerHTML;
+    var lastChar = currentString[currentString.length - 1];
+
+    // if result is not diplayed, just keep adding
+    if (resultDisplayed === false) {
+      input.innerHTML += e.target.innerHTML;
+    } else if (resultDisplayed === true && lastChar === "+" || lastChar === "-" || lastChar === "×" || lastChar === "÷") {
+      // if result is currently displayed and user pressed an operator
+      // we need to keep on adding to the string for next operation
+      resultDisplayed = false;
+      input.innerHTML += e.target.innerHTML;
+    } else {
+      // if result is currently displayed and user pressed a number
+      // we need clear the input string and add the new input to start the new opration
+      resultDisplayed = false;
+      input.innerHTML = "";
+      input.innerHTML += e.target.innerHTML;
     }
-})
 
-document.querySelector(".weather_unit_farenheit").addEventListener('click', () => {
-    if(units !== "imperial"){
-        // change to imperial
-        units = "imperial"
-        // get weather forecast 
-        getWeather()
-    }
-})
-
-function convertTimeStamp(timestamp, timezone){
-     const convertTimezone = timezone / 3600; // convert seconds to hours 
-
-    const date = new Date(timestamp * 1000);
-    
-    const options = {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-        hour: "numeric",
-        minute: "numeric",
-        timeZone: `Etc/GMT${convertTimezone >= 0 ? "-" : "+"}${Math.abs(convertTimezone)}`,
-        hour12: true,
-    }
-    return date.toLocaleString("en-US", options)
-   
+  });
 }
 
- 
+// adding click handlers to number buttons
+for (var i = 0; i < operator.length; i++) {
+  operator[i].addEventListener("click", function(e) {
 
-// convert country code to name
-function convertCountryCode(country){
-    let regionNames = new Intl.DisplayNames(["en"], {type: "region"});
-    return regionNames.of(country)
+    // storing current input string and its last character in variables - used later
+    var currentString = input.innerHTML;
+    var lastChar = currentString[currentString.length - 1];
+
+    // if last character entered is an operator, replace it with the currently pressed one
+    if (lastChar === "+" || lastChar === "-" || lastChar === "×" || lastChar === "÷") {
+      var newString = currentString.substring(0, currentString.length - 1) + e.target.innerHTML;
+      input.innerHTML = newString;
+    } else if (currentString.length == 0) {
+      // if first key pressed is an opearator, don't do anything
+      console.log("enter a number first");
+    } else {
+      // else just add the operator pressed to the input
+      input.innerHTML += e.target.innerHTML;
+    }
+
+  });
 }
 
-function getWeather(){
-    const API_KEY = '64f60853740a1ee3ba20d0fb595c97d5'
+// on click of 'equal' button
+result.addEventListener("click", function() {
 
-fetch(`https://api.openweathermap.org/data/2.5/weather?q=${currCity}&appid=${API_KEY}&units=${units}`).then(res => res.json()).then(data => {
-    console.log(data)
-    city.innerHTML = `${data.name}, ${convertCountryCode(data.sys.country)}`
-    datetime.innerHTML = convertTimeStamp(data.dt, data.timezone); 
-    weather__forecast.innerHTML = `<p>${data.weather[0].main}`
-    weather__temperature.innerHTML = `${data.main.temp.toFixed()}&#176`
-    weather__icon.innerHTML = `   <img src="http://openweathermap.org/img/wn/${data.weather[0].icon}@4x.png" />`
-    weather__minmax.innerHTML = `<p>Min: ${data.main.temp_min.toFixed()}&#176</p><p>Max: ${data.main.temp_max.toFixed()}&#176</p>`
-    weather__realfeel.innerHTML = `${data.main.feels_like.toFixed()}&#176`
-    weather__humidity.innerHTML = `${data.main.humidity}%`
-    weather__wind.innerHTML = `${data.wind.speed} ${units === "imperial" ? "mph": "m/s"}` 
-    weather__pressure.innerHTML = `${data.main.pressure} hPa`
+  // this is the string that we will be processing eg. -10+26+33-56*34/23
+  var inputString = input.innerHTML;
+
+  // forming an array of numbers. eg for above string it will be: numbers = ["10", "26", "33", "56", "34", "23"]
+  var numbers = inputString.split(/\+|\-|\×|\÷/g);
+
+  // forming an array of operators. for above string it will be: operators = ["+", "+", "-", "*", "/"]
+  // first we replace all the numbers and dot with empty string and then split
+  var operators = inputString.replace(/[0-9]|\./g, "").split("");
+
+  console.log(inputString);
+  console.log(operators);
+  console.log(numbers);
+  console.log("----------------------------");
+
+  // now we are looping through the array and doing one operation at a time.
+  // first divide, then multiply, then subtraction and then addition
+  // as we move we are alterning the original numbers and operators array
+  // the final element remaining in the array will be the output
+
+  var divide = operators.indexOf("÷");
+  while (divide != -1) {
+    numbers.splice(divide, 2, numbers[divide] / numbers[divide + 1]);
+    operators.splice(divide, 1);
+    divide = operators.indexOf("÷");
+  }
+
+  var multiply = operators.indexOf("×");
+  while (multiply != -1) {
+    numbers.splice(multiply, 2, numbers[multiply] * numbers[multiply + 1]);
+    operators.splice(multiply, 1);
+    multiply = operators.indexOf("×");
+  }
+
+  var subtract = operators.indexOf("-");
+  while (subtract != -1) {
+    numbers.splice(subtract, 2, numbers[subtract] - numbers[subtract + 1]);
+    operators.splice(subtract, 1);
+    subtract = operators.indexOf("-");
+  }
+
+  var add = operators.indexOf("+");
+  while (add != -1) {
+    // using parseFloat is necessary, otherwise it will result in string concatenation :)
+    numbers.splice(add, 2, parseFloat(numbers[add]) + parseFloat(numbers[add + 1]));
+    operators.splice(add, 1);
+    add = operators.indexOf("+");
+  }
+
+  input.innerHTML = numbers[0]; // displaying the output
+
+  resultDisplayed = true; // turning flag if result is displayed
+});
+
+// clearing the input on press of clear
+clear.addEventListener("click", function() {
+  input.innerHTML = "";
 })
-}
-
-document.body.addEventListener('load', getWeather())
